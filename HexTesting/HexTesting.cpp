@@ -66,14 +66,15 @@ using Gdiplus::Brush;
 using Gdiplus::SolidBrush;
 
 Bitmap* b;
+Graphics* g;
 Layout* layout;
 std::vector<Hex> map;
 std::vector<int> colors;
 Brush* brushes[15];
 Pen* pen;
+POINTS mousecoords;
 
 void Draw() {
-	Graphics* g = Graphics::FromImage(b);
 	for (int i = 0; i < int(map.size()); ++i) {
 		g->FillPolygon(brushes[colors[i]], PolygonCorners(*layout, map[i]).data(), 6);
 		g->DrawPolygon(pen, PolygonCorners(*layout, map[i]).data(), 6);
@@ -87,18 +88,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		{
 			srand(unsigned(time(nullptr)));
 			b = new Bitmap(512, 512);
+			g = Graphics::FromImage(b);
 			layout = new Layout{ flat, PointF(20.0, 20.0), PointF(256.0, 256.0) };
-			int q, r;
-			for (q = 0; q < 5; ++q)
-				for (r = 0; r < 5; ++r)
-				{
+
+			for (int q = -6; q <= 6; q++) {
+				int r1 = max(-6, -q - 6);
+				int r2 = min(6, -q + 6);
+				for (int r = r1; r <= r2; r++) {
 					map.push_back(Hex(q, r));
 					colors.push_back(rand() % 4);
 				}
-			brushes[0] = new SolidBrush(Color::White);
+			}
+
+			brushes[0] = new SolidBrush(Color::LightGray);
 			brushes[1] = new SolidBrush(Color::Red);
-			brushes[2] = new SolidBrush(Color::Blue);
-			brushes[3] = new SolidBrush(Color::CornflowerBlue);
+			brushes[2] = new SolidBrush(Color::RoyalBlue);
+			brushes[3] = new SolidBrush(Color::SlateGray);
 			pen = new Pen(Color::Black);
 			Draw();
 
@@ -117,7 +122,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 	case WM_MOUSEMOVE:
 		{
-
+			mousecoords = MAKEPOINTS(lParam);
+			SolidBrush brush(0x80FFFFFF);
+			Draw();
+			g->FillPolygon(&brush, PolygonCorners(*layout, HexRound(PixelToHex(*layout, PointF(mousecoords.x, mousecoords.y)))).data(), 6);
+			InvalidateRect(hWnd, nullptr, false);
 		}
 		break;
 	case WM_KEYDOWN:
@@ -143,8 +152,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-			Graphics g(hdc);
-			g.DrawImage(b, 0, 0);
+			Graphics graphics(hdc);
+			graphics.DrawImage(b, 0, 0);
             EndPaint(hWnd, &ps);
         }
         break;
