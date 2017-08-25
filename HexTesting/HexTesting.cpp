@@ -1,10 +1,7 @@
 #include "stdafx.h"
 #include "HexTesting.h"
 #include "Hexagon.h"
-#include <ObjIdl.h>
-#include <gdiplus.h>
-#pragma comment (lib,"Gdiplus.lib")
-#define MAX_LOADSTRING 100
+#include <time.h>
 HINSTANCE hInst;
 WCHAR szTitle[100];
 WCHAR szWindowClass[100];
@@ -61,13 +58,71 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
    return TRUE;
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
+using Gdiplus::Bitmap;
+using Gdiplus::Graphics;
+using Gdiplus::Color;
+using Gdiplus::Pen;
+using Gdiplus::Brush;
+using Gdiplus::SolidBrush;
+
+Bitmap* b;
+Layout* layout;
+std::vector<Hex> map;
+std::vector<int> colors;
+Brush* brushes[15];
+Pen* pen;
+
+void Draw() {
+	Graphics* g = Graphics::FromImage(b);
+	for (int i = 0; i < int(map.size()); ++i) {
+		g->FillPolygon(brushes[colors[i]], PolygonCorners(*layout, map[i]).data(), 6);
+		g->DrawPolygon(pen, PolygonCorners(*layout, map[i]).data(), 6);
+	}
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message)
     {
 	case WM_CREATE:
 		{
+			srand(unsigned(time(nullptr)));
+			b = new Bitmap(512, 512);
+			layout = new Layout{ flat, PointF(20.0, 20.0), PointF(256.0, 256.0) };
+			int q, r;
+			for (q = 0; q < 5; ++q)
+				for (r = 0; r < 5; ++r)
+				{
+					map.push_back(Hex(q, r));
+					colors.push_back(rand() % 4);
+				}
+			brushes[0] = new SolidBrush(Color::White);
+			brushes[1] = new SolidBrush(Color::Red);
+			brushes[2] = new SolidBrush(Color::Blue);
+			brushes[3] = new SolidBrush(Color::CornflowerBlue);
+			pen = new Pen(Color::Black);
+			Draw();
+
 			DeleteMenu(GetMenu(hWnd), 1, MF_BYPOSITION);
+		}
+		break;
+	case WM_TIMER:
+		{
+
+		}
+		break;
+	case WM_LBUTTONDOWN:
+		{
+			
+		}
+		break;
+	case WM_MOUSEMOVE:
+		{
+
+		}
+		break;
+	case WM_KEYDOWN:
+		{
+			
 		}
 		break;
     case WM_COMMAND:
@@ -88,13 +143,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-			Gdiplus::Graphics g(hdc);
-			//draw here
+			Graphics g(hdc);
+			g.DrawImage(b, 0, 0);
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
 		{
+			delete(layout);
+			for (int i = 0; i < 4; ++i)
+				delete(brushes[i]);
+			delete(pen);
 			PostQuitMessage(0);
 		}
         break;
